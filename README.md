@@ -1,0 +1,3 @@
+mindi
+=====
+Minimal DI Container
