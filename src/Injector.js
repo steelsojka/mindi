@@ -6,12 +6,6 @@ export default class Injector {
     this.container = new Map();
     this.cache = new Map();
     this.decorators = new Map();
-
-    this.register = this.register.bind(this);
-    this.register.singleton = this.register.bind(this, 'singleton');
-    this.register.transient = this.register.bind(this, 'transient');
-    this.register.value = this.register.bind(this, 'value');
-    this.register.factory = this.register.bind(this, 'factory');
   }
 
   /**
@@ -110,8 +104,8 @@ export default class Injector {
    * @param {Object<string, any>} [locals={}] - Local injections.
    * @returns {any} The result.
    */
-  invoke(fn, locals = {}) {
-    return fn(...this.resolve(fn, locals));
+  invoke(fn, locals = {}, context = null) {
+    return fn.apply(context, this.resolve(fn, locals));
   }
 
   /**
@@ -183,6 +177,16 @@ export default class Injector {
     };
   }
 
+  spawn() {
+    const injector = new Injector();
+
+    injector.container = new Map(this.container);
+    injector.decorators = new Map(this.decorators);
+    injector.cache = new Map(this.cache);
+
+    return injector;
+  }
+
   /**
    * Annotates a function.
    * @param {Function} target - The target.
@@ -190,16 +194,5 @@ export default class Injector {
    */
   static annotate(target, ...dependencies) {
     target.$inject = dependencies;
-  }
-
-  /**
-   * A decorator from annotating a class.
-   * @param {...*} dep - The dep
-   * @returns {Function} The decorator.
-   */
-  static inject(...dep) {
-    return target => {
-      Injector.annotate(target, ...dep);
-    };
   }
 }
