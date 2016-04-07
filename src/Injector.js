@@ -168,26 +168,6 @@ export default class Injector {
   }
 
   /**
-   * Annotates a function.
-   * @param {Function} target - The target.
-   * @param {...any} dependencies - The dependencies.
-   */
-  annotate(target, ...dependencies) {
-    target.$inject = dependencies;
-  }
-
-  /**
-   * A decorator from annotating a class.
-   * @param {...*} dep - The dep
-   * @returns {Function} The decorator.
-   */
-  inject(...dep) {
-    return target => {
-      this.annotate(target, ...dep);
-    };
-  }
-
-  /**
    * A decorator for registering a component with the injector.
    * @param {string} type - The type to register as.
    * @param {any} [key] - The key to store under. Uses the target is not defined.
@@ -200,6 +180,26 @@ export default class Injector {
       }
 
       this[type](key || target, target);
+    };
+  }
+
+  /**
+   * Annotates a function.
+   * @param {Function} target - The target.
+   * @param {...any} dependencies - The dependencies.
+   */
+  static annotate(target, ...dependencies) {
+    target.$inject = dependencies;
+  }
+
+  /**
+   * A decorator from annotating a class.
+   * @param {...*} dep - The dep
+   * @returns {Function} The decorator.
+   */
+  static inject(...dep) {
+    return target => {
+      Injector.annotate(target, ...dep);
     };
   }
 }
