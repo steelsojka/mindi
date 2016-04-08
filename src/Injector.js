@@ -1,27 +1,45 @@
 /**
- * A minimal DI container with support for decorators.
+ * A minimal DI container with support for decorators. Reads injection annotations in the format of `$inject` where
+ * the value is an array of dependencies or as a function that returns an array of dependencies.
  */
 export default class Injector {
   constructor() {
     this.container = new Map();
     this.cache = new Map();
     this.decorators = new Map();
+    this.resolving = [];
+
+    this.register = this.register.bind(this);
+    this.register.singleton = this.register.bind(this, 'singleton');
+    this.register.transient = this.register.bind(this, 'transient');
+    this.register.factory = this.register.bind(this, 'factory');
+    this.register.value = this.register.bind(this, 'value');
   }
 
   /**
-   * Gets a registered component.
+   * Gets a registered component. This will also detect circular dependencies.
    * @param {any} key - The key to access.
    * @param {Object<string, any>} [locals={}] - Local injections.
    * @returns {any} The component
    */
   get(key, locals = {}) {
-    if (locals.hasOwnProperty(key)) {
-      return locals[key];
+    let result;
+
+    if (this.resolving.indexOf(key) !== -1) {
+      throw new Error(`Circular reference detected [${this.resolving.join(' => ')}]`);
     }
 
-    if (this.container.has(key)) {
-      return this.container.get(key)(locals);
+    this.resolving.push(key);
+
+    if (locals.hasOwnProperty(key)) {
+      result = locals[key];
+    } else if (this.container.has(key)) {
+      result = this.container.get(key).call(this, locals);
     }
+
+    this.resolving.splice(this.resolving.indexOf(key), 1)
+
+    return result;
   }
 
   /**
@@ -44,15 +62,15 @@ export default class Injector {
       this.cache.delete(key);
     }
 
-    this.container.set(key, locals => {
+    this.container.set(key, function(locals) {
       if (this.cache.has(key)) {
         return this.cache.get(key);
       }
 
       const decorators = this.decorators.get(key) || [];
       const result = decorators.reduce((result, decorator) => {
-        return this.invoke(decorator, Object.assign({}, { $delegate: result }, locals));
-      }, fn(locals));
+        return this.invoke(decorator, Object.assign({}, { $delegate: result, $injector: this }, locals));
+      }, fn(this, locals));
 
       if (cache) {
         this.cache.set(key, result);
@@ -68,7 +86,7 @@ export default class Injector {
    * @param {Function} factory - The factory.
    */
   factory(key, factory) {
-    this.set(key, locals => this.invoke(factory, locals), true);
+    this.set(key, (injector, locals) => injector.invoke(factory || key, locals), true);
   }
   
   /**
@@ -77,7 +95,7 @@ export default class Injector {
    * @param {Function} Ctor - The class constructor.
    */
   singleton(key, Ctor) {
-    this.set(key, locals => this.instantiate(Ctor, locals), true);
+    this.set(key, (injector, locals) => injector.instantiate(Ctor || key, locals), true);
   }
 
   /**
@@ -86,7 +104,7 @@ export default class Injector {
    * @param {Function} Ctor - The class constructor.
    */
   transient(key, Ctor) {
-    this.set(key, locals => this.instantiate(Ctor, locals), false);
+    this.set(key, (injector, locals) => injector.instantiate(Ctor || key, locals), false);
   }
 
   /**
@@ -95,7 +113,7 @@ export default class Injector {
    * @param {any} value - The value.
    */
   value(key, value) {
-    this.set(key, () => value, true);
+    this.set(key, () => value, false);
   }
 
   /**
@@ -129,7 +147,8 @@ export default class Injector {
   }
 
   /**
-   * Registers a decorator for a component.
+   * Registers a decorator for a component. Injected service is available as '$delegate'.
+   * The injector is available as '$injector'.
    * @param {any} key - The key.
    * @param {Function} fn - The decorator function. 
    *   This function is also injectable.
@@ -177,14 +196,27 @@ export default class Injector {
     };
   }
 
+  /**
+   * Spawns (clones) a child injector with that same state.
+   * @returns {Injector} The spawned injector.
+   */
   spawn() {
-    const injector = new Injector();
+    const injector = new this.constructor();
 
     injector.container = new Map(this.container);
     injector.decorators = new Map(this.decorators);
     injector.cache = new Map(this.cache);
 
     return injector;
+  }
+
+  /**
+   * Performs any cleanup work on the injector.
+   */
+  destroy() {
+    this.container = null;
+    this.decorators = null;
+    this.cache = null;
   }
 
   /**
