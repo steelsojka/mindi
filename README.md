@@ -27,9 +27,12 @@ class MyService {
 
 // Annotate the class (optional decorators)
 Injector.annotate(MyService, 'myOtherService');
+// or
+MyService.$inject = ['myOtherService'];
 
-// Register with the injector
+// Register with the injector (key, value)
 injector.factory('myOtherService', myOtherServiceFactory);
+// If a key is not provided the first parameter will act as the key (value, value)
 injector.singleton(MyService);
 
 const myService = injector.get(MyService);
@@ -39,21 +42,13 @@ myService.myOtherService === myOtherService; // => true
 myService.myOtherService.woot(); // => woot!!!
 ```
 
-You can use optional ES7 decorators.
+You can use optional decorators.
 
 
 ```javascript
 import { Injector, inject } from 'mindi';
 
 const injector = new Injector();
-
-function myOtherServiceFactory() {
-  return {
-    woot() {
-      console.log('woot!!!');
-    }
-  };
-}
 
 @injector.register.singleton()
 @inject('myOtherService')
@@ -62,15 +57,6 @@ class MyService {
     this.myOtherService = myOtherService;
   }
 }
-
-// Register with the injector
-injector.factory('myOtherService', myOtherServiceFactory);
-
-const myService = injector.get(MyService);
-const myOtherService = injector.get('myOtherService');
-
-myService.myOtherService === myOtherService; // => true
-myService.myOtherService.woot(); // => woot!!!
 ```
 
 API
