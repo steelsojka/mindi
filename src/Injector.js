@@ -218,6 +218,15 @@ export default class Injector {
     this.decorators = null;
     this.cache = null;
   }
+  
+  /**
+   * Annotates a function.
+   * @param {Function} target - The target.
+   * @param {...any} dependencies - The dependencies.
+   */  
+  annotate(target, ...dependencies) {
+    Injector.annotate(target, ...dependencies);
+  }
 
   /**
    * Annotates a function.
