@@ -249,6 +249,15 @@ export default class Injector {
     this.cache = null;
     this.resolving = [];
   }
+  
+  /**
+   * Annotates a function.
+   * @param {Function} target - The target.
+   * @param {...any} dependencies - The dependencies.
+   */  
+  annotate(target, ...dependencies) {
+    Injector.annotate(target, ...dependencies);
+  }
 
   /**
    * Annotates a function.
