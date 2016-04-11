@@ -19,7 +19,7 @@ export default class Injector {
   /**
    * Gets a registered component. This will also detect circular dependencies.
    * @param {any} key - The key to access.
-   * @param {Object<string, any>} [locals={}] - Local injections.
+   * @param {Object|Map<any, any>} [locals={}] - Local injections.
    * @returns {any} The component
    */
   get(key, locals = {}) {
@@ -31,8 +31,8 @@ export default class Injector {
 
     this.resolving.push(key);
 
-    if (locals.hasOwnProperty(key)) {
-      result = locals[key];
+    if (this.hasLocal(key, locals)) {
+      result = this.resolveLocal(key, locals);
     } else if (this.container.has(key)) {
       result = this.container.get(key).call(this, locals);
     }
@@ -40,6 +40,36 @@ export default class Injector {
     this.resolving.splice(this.resolving.indexOf(key), 1)
 
     return result;
+  }
+
+  /**
+   * Resolves a value from a local map. Supports
+   * object literals and Maps.
+   * @param {any} key - The key.
+   * @param {Object|Map<any, any>} [locals={}] - Local map.
+   * @returns {any} The result.
+   */
+  resolveLocal(key, locals = {}) {
+    if (locals instanceof Map) {
+      return locals.get(key);
+    }
+
+    return locals[key];
+  }
+
+  /**
+   * Whether a value exists in a local map. Supports
+   * object literals and Maps.
+   * @param {any} key - The key.
+   * @param {Object|Map<any, any>} [locals={}] - Local map.
+   * @returns {boolean} The result.
+   */
+  hasLocal(key, locals = {}) {
+    if (locals instanceof Map) {
+      return locals.has(key);
+    }
+
+    return locals.hasOwnProperty(key);
   }
 
   /**
@@ -119,7 +149,7 @@ export default class Injector {
   /**
    * Invokes a function with it's requested dependencies.
    * @param {Function} fn - The fn.
-   * @param {Object<string, any>} [locals={}] - Local injections.
+   * @param {Object|Map<any, any>} [locals={}] - Local map.
    * @returns {any} The result.
    */
   invoke(fn, locals = {}, context = null) {
@@ -129,7 +159,7 @@ export default class Injector {
   /**
    * Instantiates a class with the requested dependencies.
    * @param {Function} Ctor - The Ctor.
-   * @param {Object<string, any>} [locals={}] - Local injections.
+   * @param {Object|Map<any, any>} [locals={}] - Local map.
    * @returns {Object} The result.
    */
   instantiate(Ctor, locals = {}) {
@@ -139,7 +169,7 @@ export default class Injector {
   /**
    * Resolves a functions dependencies.
    * @param {Function} fn - The function.
-   * @param {Object<string, any>} [locals={}] - Local injections.
+   * @param {Object|Map<any, any>} [locals={}] - Local map.
    * @returns {any[]} The result.
    */
   resolve(fn, locals = {}) {
@@ -217,6 +247,7 @@ export default class Injector {
     this.container = null;
     this.decorators = null;
     this.cache = null;
+    this.resolving = [];
   }
 
   /**
