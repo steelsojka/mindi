@@ -1,6 +1,6 @@
 {
   "name": "mindi",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Minimal DI",
   "main": "index.js",
   "scripts": {
