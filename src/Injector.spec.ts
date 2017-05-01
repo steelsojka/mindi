@@ -130,3 +130,29 @@ test('should skip its own injector', t => {
   t.is(injector2.get('blorg', null, { skipSelf: true }), null);
   t.is(injector2.get('blorg', null, { skipSelf: false }), 'test');
 });
+
+test('should get multiple providers', t => {
+  class MyClass {}
+  const token = new Token('test');
+  const injector = new Injector([{ provide: token, useValue: 'blorg', multi: true }]);
+  const childInjector = new Injector([{ provide: token, useClass: MyClass, multi: true }], injector)
+
+  const result = childInjector.get(token);
+
+  t.true(result.length === 2);
+  t.true(result[0] instanceof MyClass);
+  t.is(result[1], 'blorg');
+});
+
+test('should get multiple providers when the parent is not multi', t => {
+  class MyClass {}
+  const token = new Token('test');
+  const injector = new Injector([{ provide: token, useValue: 'blorg' }]);
+  const childInjector = new Injector([{ provide: token, useClass: MyClass, multi: true }], injector)
+
+  const result = childInjector.get(token);
+
+  t.true(result.length === 2);
+  t.true(result[0] instanceof MyClass);
+  t.is(result[1], 'blorg');
+});

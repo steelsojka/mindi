@@ -34,7 +34,6 @@ import { ForwardRef } from './ForwardRef';
  */
 export class Injector {
   private _providers: Map<any, Provider> = new Map();
-  private _cache: Map<any, any> = new Map();
   
   /**
    * Creates an instance of Injector.
@@ -66,7 +65,15 @@ export class Injector {
   registerProvider(provider: ProviderArg): void {
     const _provider = this._normalizeProvider(provider);
 
-    this._providers.set(_provider.provide, _provider);
+    if (_provider.multi) {
+      const entry = (this._providers.get(_provider.provide) || { provide: _provider.provide, multi: true, useValue: [] }) as ValueProvider;
+
+      (entry.useValue as Provider[]).push(_provider);
+
+      this._providers.set(_provider.provide, entry);
+    } else {
+      this._providers.set(_provider.provide, _provider);
+    }
   }
 
   /**
@@ -84,21 +91,34 @@ export class Injector {
       return () => this.get(token, defaultValue, { ...metadata, lazy: false });
     }
     
-    if (this._cache.has(token)) {
-      return this._cache.get(token);
-    }
-
     if (this._providers.has(token) && !metadata.skipSelf) {
-      const provider = this._providers.get(token);
-      resource = this._resolve(provider as Provider, metadata);
+      const provider = this._providers.get(token) as Provider;
 
-      this._cache.set(token, resource);
+      if (provider.multi) {
+        resource = ((provider as ValueProvider).useValue || []).map((p: Provider) => this._resolve(p));
+
+        if (this._parent && !metadata.self) {
+          let parentResource = this._parent.get(token, [], { ...metadata, skipSelf: false, self: false });
+
+          if (!Array.isArray(parentResource)) {
+            parentResource = [ parentResource ];
+          }
+
+          resource = [ ...resource, ...parentResource ];
+        }
+      } else {
+        if (provider.resolved === undefined) {
+          this._resolve(provider as Provider, metadata);
+        }
+
+        resource = provider.resolved;  
+      }
     }
 
     if (resource === undefined && !metadata.self && this._parent) {
-      resource = this._parent.get(token, defaultValue, metadata);
+      resource = this._parent.get(token, defaultValue, { ...metadata, skipSelf: false, self: false });
     }
-    
+
     if (resource === undefined) {
       if (defaultValue !== undefined) {
         resource = defaultValue;
@@ -146,25 +166,30 @@ export class Injector {
 
   private _resolve(_provider: ProviderArg, metadata: InjectionMetadata = {}): any {
     const provider = this._normalizeProvider(_provider);
+    let result;
     
     if (this._isClassProvider(provider)) {
       const injections = Reflect.getMetadata(INJECT_PARAM_KEY, provider.useClass, (<any>undefined)) || [];
       const resolved = this._getDependencies(injections);
       const ref = ForwardRef.resolve(provider.useClass);
 
-      return this._instantiateWithHooks(ref, ...resolved);
+      result = this._instantiateWithHooks(ref, ...resolved);
     } else if (this._isFactoryProvider(provider)) {
       const resolved = this._getDependencies((provider.deps || []).map(token => ({ token })));
       const ref = ForwardRef.resolve(provider.useFactory);
 
-      return ref(...resolved);
+      result = ref(...resolved);
     } else if (this._isValueProvider(provider)) {
-      return ForwardRef.resolve(provider.useValue);
+      result = ForwardRef.resolve(provider.useValue);
     } else if (this._isExistingProvider(provider)) {
-      return this.get(ForwardRef.resolve(provider.useExisting));
+      result = this.get(ForwardRef.resolve(provider.useExisting));
+    } else {
+      throw new Error(`Injector -> could not resolve provider ${(<Provider>provider).provide}`);
     }
 
-    throw new Error(`Injector -> could not resolve provider ${(<Provider>provider).provide}`);
+    provider.resolved = result;
+
+    return result;
   }
       
   private _getDependencies(metadata: any[]): any[] {

@@ -4,23 +4,28 @@ export interface Type<T> {
   new (...args: any[]): T;
 }
 
-export interface ClassProvider {
+export interface BaseProvider {
+  multi?: boolean;
+  resolved?: any;
+}
+
+export interface ClassProvider extends BaseProvider {
   provide: any;
   useClass: any;
 }
 
-export interface FactoryProvider {
+export interface FactoryProvider extends BaseProvider {
   provide: any;
   useFactory: any;
   deps?: any[];
 }
 
-export interface ExistingProvider {
+export interface ExistingProvider extends BaseProvider {
   provide: any;
   useExisting: any;
 }
 
-export interface ValueProvider {
+export interface ValueProvider extends BaseProvider {
   provide: any;
   useValue: any;
 }
@@ -34,6 +39,7 @@ export interface InjectionMetadata {
   lazy?: boolean;
   optional?: boolean;
   token?: any;
+  multi?: boolean;
 }
 
 export interface ConstructMetadata {
