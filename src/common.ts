@@ -63,7 +63,7 @@ export type InjectableConfigArgs = {
  * @export
  * @class Token
  */
-export class Token {
+export class Token<T> {
   /**
    * Creates an instance of Token.
    * @param {string} name String representation of the string.

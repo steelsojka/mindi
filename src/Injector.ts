@@ -11,7 +11,8 @@ import {
   ValueProvider,
   ExistingProvider,
   CONSTRUCTED_META_KEY,
-  ConstructMetadata
+  ConstructMetadata,
+  Token
 } from './common';
 import { ForwardRef } from './ForwardRef';
 
@@ -83,14 +84,10 @@ export class Injector {
    * @param {InjectionMetadata} [metadata={}] 
    * @returns {*} 
    */
-  get(token: any, defaultValue?: any, metadata: InjectionMetadata = {}): any {
+  get<T>(token: any, defaultValue?: T, metadata: InjectionMetadata = {}): T {
     let resource;
     let { optional = false, lazy = false } = metadata;
 
-    if (lazy) {
-      return () => this.get(token, defaultValue, { ...metadata, lazy: false });
-    }
-    
     if (this._providers.has(token) && !metadata.skipSelf) {
       const provider = this._providers.get(token) as Provider;
 
@@ -98,7 +95,7 @@ export class Injector {
         resource = ((provider as ValueProvider).useValue || []).map((p: Provider) => this._resolve(p));
 
         if (this._parent && !metadata.self) {
-          let parentResource = this._parent.get(token, [], { ...metadata, skipSelf: false, self: false });
+          let parentResource = this._parent.get<T[]>(token, [], { ...metadata, skipSelf: false, self: false });
 
           if (!Array.isArray(parentResource)) {
             parentResource = [ parentResource ];
@@ -193,7 +190,13 @@ export class Injector {
   }
       
   private _getDependencies(metadata: any[]): any[] {
-    return metadata.map(meta => this.get(meta.token, undefined, meta));
+    return metadata.map(meta => {
+      if (meta.lazy) {
+        return () => this.get<any>(meta.token, undefined, meta);
+      }
+
+      return this.get(meta.token, undefined, meta);
+    });
   }
 
   private _instantiate(Ref: any, ...d: any[]): any {

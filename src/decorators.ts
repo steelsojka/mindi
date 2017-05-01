@@ -3,7 +3,8 @@ import {
   InjectableConfigArgs,
   INJECTABLE_META_KEY,
   CONSTRUCTED_META_KEY,
-  ConstructMetadata
+  ConstructMetadata,
+  Token
 } from './common';
 
 /**

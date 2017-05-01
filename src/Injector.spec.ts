@@ -1,7 +1,7 @@
 import { Injector } from './Injector';
 import { forwardRef } from './ForwardRef';
 import { Token } from './common';
-import { Inject, PostConstruct } from './decorators';
+import { Inject, PostConstruct, Lazy } from './decorators';
 import test from 'ava';
 
 class MyClass {}
@@ -41,11 +41,16 @@ test('should get the dependency from parent', t => {
 });
 
 test('should get the dependency lazily', t => {
-  const injector = new Injector([ MyClass ]);
-  const getMyClass = injector.get(MyClass, null, { lazy: true });
+  const token = new Token('blorg');
+  class LazyClass {
+    constructor(@Inject(token) @Lazy() public dep: any) {}
+  }
 
-  t.is(typeof getMyClass, 'function');
-  t.true(getMyClass() instanceof MyClass);
+  const injector = new Injector([ LazyClass, { provide: token, useValue: 'blorg' } ]);
+  const instance = injector.get<LazyClass>(LazyClass);
+
+  t.is(typeof instance.dep, 'function');
+  t.is(instance.dep(), 'blorg');
 });
 
 test('should return null for optional dependency', t => {
@@ -137,7 +142,7 @@ test('should get multiple providers', t => {
   const injector = new Injector([{ provide: token, useValue: 'blorg', multi: true }]);
   const childInjector = new Injector([{ provide: token, useClass: MyClass, multi: true }], injector)
 
-  const result = childInjector.get(token);
+  const result = childInjector.get<any[]>(token);
 
   t.true(result.length === 2);
   t.true(result[0] instanceof MyClass);
@@ -150,7 +155,7 @@ test('should get multiple providers when the parent is not multi', t => {
   const injector = new Injector([{ provide: token, useValue: 'blorg' }]);
   const childInjector = new Injector([{ provide: token, useClass: MyClass, multi: true }], injector)
 
-  const result = childInjector.get(token);
+  const result = childInjector.get<any[]>(token);
 
   t.true(result.length === 2);
   t.true(result[0] instanceof MyClass);
