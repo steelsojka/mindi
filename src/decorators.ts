@@ -63,13 +63,24 @@ export function Self(): ParameterDecorator {
 }
 
 /**
+ * Will only check the parent injectors creating the dependency. It will not
+ * @export
+ * @returns {ParameterDecorator} 
+ */
+export function SkipSelf(): ParameterDecorator {
+  return (target: Object, key: string, index: number) => {
+    addParamEntryProperty(target, key, index, { skipSelf: true });
+  };
+}
+
+/**
  * Marks a dependency as injectable. When the dependency is created using
  * `Injector.fromInjectable` the dependency can define some scoped dependencies.
  * @export
  * @param {InjectableConfigArgs} [config={}] 
  * @returns {ClassDecorator} 
  * @example
- * @Injectabled({
+ * @Injectable({
  *   providers: [
  *     { provide: MyToken, useValue: 'blorg' } 
  *   ]
@@ -129,7 +140,8 @@ function addParamEntryProperty(target: Object, key: string, index: number, keyVa
       token: null,
       optional: false,
       lazy: false,
-      self: false
+      self: false,
+      skipSelf: false
     };
   }
 

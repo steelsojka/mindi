@@ -88,7 +88,7 @@ export class Injector {
       return this._cache.get(token);
     }
 
-    if (this._providers.has(token)) {
+    if (this._providers.has(token) && !metadata.skipSelf) {
       const provider = this._providers.get(token);
       resource = this._resolve(provider as Provider, metadata);
 

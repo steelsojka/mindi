@@ -29,6 +29,7 @@ export type ProviderArg = ClassProvider|FactoryProvider|ExistingProvider|ValuePr
 export type Provider = ClassProvider|FactoryProvider|ExistingProvider|ValueProvider;
 
 export interface InjectionMetadata {
+  skipSelf?: boolean;
   self?: boolean;
   lazy?: boolean;
   optional?: boolean;

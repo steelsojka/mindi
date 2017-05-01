@@ -122,3 +122,11 @@ test('should invoke the post construct hook', t => {
 
   t.true(testClass instanceof TestClass);
 });
+
+test('should skip its own injector', t => {
+  const injector = new Injector();
+  const injector2 = injector.resolveAndCreateChild([ { provide: 'blorg', useValue: 'test' } ]);
+
+  t.is(injector2.get('blorg', null, { skipSelf: true }), null);
+  t.is(injector2.get('blorg', null, { skipSelf: false }), 'test');
+});
