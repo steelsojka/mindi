@@ -161,3 +161,51 @@ test('should get multiple providers when the parent is not multi', t => {
   t.true(result[0] instanceof MyClass);
   t.is(result[1], 'blorg');
 });
+
+test('should resolve the static injection list', t => {
+  const token = new Token('test');
+
+  class MyClass {
+    static inject() {
+      return [ token ];
+    }
+
+    constructor(public dep: any) {}
+  }
+  const injector = new Injector([ MyClass, { provide: token, useValue: 'blorg' } ]);
+
+  const myClass = injector.get<MyClass>(MyClass);
+
+  t.is(myClass.dep, 'blorg');
+});
+
+test('should resolve the static injection list property', t => {
+  const token = new Token('test');
+
+  class MyClass {
+    static inject = [ token ];
+
+    constructor(public dep: any) {}
+  }
+  const injector = new Injector([ MyClass, { provide: token, useValue: 'blorg' } ]);
+
+  const myClass = injector.get<MyClass>(MyClass);
+
+  t.is(myClass.dep, 'blorg');
+});
+
+test('should resolve the static injection list property metadata', t => {
+  const token = new Token('test');
+
+  class MyClass {
+    static inject = [ { token, lazy: true } ];
+
+    constructor(public dep: any) {}
+  }
+  const injector = new Injector([ MyClass, { provide: token, useValue: 'blorg' } ]);
+
+  const myClass = injector.get<MyClass>(MyClass);
+
+  t.is(typeof myClass.dep, 'function');
+  t.is(myClass.dep(), 'blorg');
+});

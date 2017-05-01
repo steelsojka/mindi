@@ -166,13 +166,13 @@ export class Injector {
     let result;
     
     if (this._isClassProvider(provider)) {
-      const injections = Reflect.getMetadata(INJECT_PARAM_KEY, provider.useClass, (<any>undefined)) || [];
+      const injections = this._getClassMetadata(provider.useClass);
       const resolved = this._getDependencies(injections);
       const ref = ForwardRef.resolve(provider.useClass);
 
       result = this._instantiateWithHooks(ref, ...resolved);
     } else if (this._isFactoryProvider(provider)) {
-      const resolved = this._getDependencies((provider.deps || []).map(token => ({ token })));
+      const resolved = this._getDependencies(this._resolveMetadataList(provider.deps));
       const ref = ForwardRef.resolve(provider.useFactory);
 
       result = ref(...resolved);
@@ -255,6 +255,34 @@ export class Injector {
     } 
 
     return _provider;
+  }
+
+  private _getClassMetadata(Ctor: object & { inject?: any }): InjectionMetadata[] {
+    let injections = Reflect.getMetadata(INJECT_PARAM_KEY, Ctor, (<any>undefined));
+
+    if (!injections) {
+      if (typeof Ctor.inject === 'function') {
+        injections = this._resolveMetadataList(Ctor.inject());
+      } else if (Array.isArray(Ctor.inject)) {
+        injections = this._resolveMetadataList(Ctor.inject);
+      }
+    }
+
+    return injections || [];
+  }
+
+  private _resolveMetadataList(list: any[] = []): InjectionMetadata[] {
+    if (!Array.isArray(list)) {
+      return [];
+    }
+
+    return list.map((metadata: any) => {
+      if (metadata instanceof Token || typeof metadata === 'function') {
+        return { token: metadata };
+      }
+
+      return metadata;
+    });
   }
 
   /**
