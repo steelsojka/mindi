@@ -9,7 +9,9 @@ import {
   ClassProvider,
   FactoryProvider,
   ValueProvider,
-  ExistingProvider
+  ExistingProvider,
+  CONSTRUCTED_META_KEY,
+  ConstructMetadata
 } from './common';
 import { ForwardRef } from './ForwardRef';
 
@@ -147,12 +149,12 @@ export class Injector {
     
     if (this._isClassProvider(provider)) {
       const injections = Reflect.getMetadata(INJECT_PARAM_KEY, provider.useClass, (<any>undefined)) || [];
-      const resolved = this.getDependencies(injections);
+      const resolved = this._getDependencies(injections);
       const ref = ForwardRef.resolve(provider.useClass);
 
-      return this.instantiate(ref, ...resolved);
+      return this._instantiateWithHooks(ref, ...resolved);
     } else if (this._isFactoryProvider(provider)) {
-      const resolved = this.getDependencies((provider.deps || []).map(token => ({ token })));
+      const resolved = this._getDependencies((provider.deps || []).map(token => ({ token })));
       const ref = ForwardRef.resolve(provider.useFactory);
 
       return ref(...resolved);
@@ -165,11 +167,11 @@ export class Injector {
     throw new Error(`Injector -> could not resolve provider ${(<Provider>provider).provide}`);
   }
       
-  private getDependencies(metadata: any[]): any[] {
+  private _getDependencies(metadata: any[]): any[] {
     return metadata.map(meta => this.get(meta.token, undefined, meta));
   }
 
-  private instantiate(Ref: any, ...d: any[]): any {
+  private _instantiate(Ref: any, ...d: any[]): any {
     switch (d.length) {
       case 0: return new Ref();
       case 1: return new Ref(d[0]);
@@ -187,6 +189,20 @@ export class Injector {
       default: 
         return new Ref(...d);
     }
+  }
+
+  private _instantiateWithHooks(Ref: Function, ...d: any[]): any {
+    const instance = this._instantiate(Ref, ...d);
+
+    const metadata = Reflect.getOwnMetadata(CONSTRUCTED_META_KEY, Ref.prototype) as ConstructMetadata|undefined;
+
+    if (metadata) {
+      for (const postConstruct of metadata.postConstruct) {
+        instance[postConstruct].call(instance);
+      }
+    }
+
+    return instance;
   }
 
   private _isClassProvider(provider: Provider): provider is ClassProvider {

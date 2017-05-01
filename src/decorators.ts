@@ -1,7 +1,9 @@
 import { 
   INJECT_PARAM_KEY, 
   InjectableConfigArgs,
-  INJECTABLE_META_KEY
+  INJECTABLE_META_KEY,
+  CONSTRUCTED_META_KEY,
+  ConstructMetadata
 } from './common';
 
 /**
@@ -90,6 +92,33 @@ export function Injectable(config: InjectableConfigArgs = {}): ClassDecorator {
     
     Reflect.defineMetadata(INJECTABLE_META_KEY, config, target);
   };
+}
+
+/**
+ * Defines a method to be invoked after the constructor function.
+ * @export
+ * @returns {MethodDecorator} 
+ */
+export function PostConstruct(): MethodDecorator {
+  return (target: Object, name: string) => {
+    const metadata = getConstructMetadata(target, name);
+
+    metadata.postConstruct.push(name);
+
+    Reflect.defineMetadata(CONSTRUCTED_META_KEY, metadata, target);
+  };
+}
+
+function getConstructMetadata(target: Object, key: string): ConstructMetadata { 
+  let metadata: ConstructMetadata|undefined = Reflect.getOwnMetadata(CONSTRUCTED_META_KEY, target, key);
+
+  if (!metadata) {
+    metadata = {
+      postConstruct: []
+    };
+  }
+
+  return metadata;
 }
 
 function addParamEntryProperty(target: Object, key: string, index: number, keyValue: {[key: string]: any}) { 

@@ -1,7 +1,7 @@
 import { Injector } from './Injector';
 import { forwardRef } from './ForwardRef';
 import { Token } from './common';
-import { Inject } from './decorators';
+import { Inject, PostConstruct } from './decorators';
 import test from 'ava';
 
 class MyClass {}
@@ -101,6 +101,22 @@ test('should resolve the provider with the injector', t => {
       t.true(myClass instanceof MyClass);
     }
   }
+
+  const testClass = injector.resolveAndInstantiate(TestClass);
+
+  t.true(testClass instanceof TestClass);
+});
+
+test('should invoke the post construct hook', t => {
+  t.plan(2);
+  class TestClass {
+    @PostConstruct()
+    init() {
+      t.pass();
+    }
+  }
+
+  const injector = new Injector();
 
   const testClass = injector.resolveAndInstantiate(TestClass);
 

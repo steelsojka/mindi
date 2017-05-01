@@ -35,8 +35,13 @@ export interface InjectionMetadata {
   token?: any;
 }
 
-export const INJECT_PARAM_KEY = 'ugLayout:injections';
-export const INJECTABLE_META_KEY = 'ugLayout:injectable';
+export interface ConstructMetadata {
+  postConstruct: string[];
+}
+
+export const INJECT_PARAM_KEY = 'mindi:injections';
+export const INJECTABLE_META_KEY = 'mindi:injectable';
+export const CONSTRUCTED_META_KEY = 'mindi:constructed';
 
 export interface InjectableConfig {
   providers: ProviderArg[];
