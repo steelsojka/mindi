@@ -2,7 +2,7 @@ import {
   Type,
   Provider, 
   ProviderArg,
-  INJECT_PARAM_KEY, 
+  INJECT_METADATA, 
   InjectionMetadata,
   InjectableConfig,
   INJECTABLE_META_KEY,
@@ -12,6 +12,7 @@ import {
   ExistingProvider,
   CONSTRUCTED_META_KEY,
   ConstructMetadata,
+  ClassInjectionMetadata,
   Token
 } from './common';
 import { ForwardRef } from './ForwardRef';
@@ -86,7 +87,7 @@ export class Injector {
    */
   get<T>(token: any, defaultValue?: T, metadata: InjectionMetadata = {}): T {
     let resource;
-    let { optional = false, lazy = false } = metadata;
+    let { optional = false } = metadata;
 
     if (this._providers.has(token) && !metadata.skipSelf) {
       const provider = this._providers.get(token) as Provider;
@@ -148,6 +149,29 @@ export class Injector {
   }
 
   /**
+   * Wires up properties on a class instance with dependencies. This is invoked on class construction as well.
+   * Note, dependencies will NOT be available in the constructor. They will be in any `PostConstruct` hooks however.
+   * @template T 
+   * @param {(T & { constructor: Type<T>, [key: string]: any })} instance 
+   * @returns {void} 
+   */
+  autowire<T>(instance: T & { constructor: Type<T>, [key: string]: any }): void {
+    const prototype = instance.constructor.prototype;
+    const metadata = Reflect.getOwnMetadata(INJECT_METADATA, prototype) as ClassInjectionMetadata|undefined;
+
+    if (!metadata) {
+      return;
+    }
+
+    const keys = Object.keys(metadata.properties);
+    const dependencies = this._getDependencies(keys.map(key => metadata.properties[key]));
+
+    for (const [ index, dependency ] of dependencies.entries()) {
+      instance[keys[index]] = dependency;
+    }
+  }
+
+  /**
    * Resolves the given provider with this injector.
    * @template T The return type.
    * @param {*} provider 
@@ -166,7 +190,7 @@ export class Injector {
     let result;
     
     if (this._isClassProvider(provider)) {
-      const injections = this._getClassMetadata(provider.useClass);
+      const injections = this._getConstructorMetadata(provider.useClass);
       const resolved = this._getDependencies(injections);
       const ref = ForwardRef.resolve(provider.useClass);
 
@@ -189,7 +213,7 @@ export class Injector {
     return result;
   }
       
-  private _getDependencies(metadata: any[]): any[] {
+  private _getDependencies(metadata: InjectionMetadata[]): any[] {
     return metadata.map(meta => {
       if (meta.lazy) {
         return () => this.get<any>(meta.token, undefined, meta);
@@ -224,6 +248,8 @@ export class Injector {
 
     const metadata = Reflect.getOwnMetadata(CONSTRUCTED_META_KEY, Ref.prototype) as ConstructMetadata|undefined;
 
+    this.autowire(instance);
+
     if (metadata) {
       for (const postConstruct of metadata.postConstruct) {
         instance[postConstruct].call(instance);
@@ -257,10 +283,13 @@ export class Injector {
     return _provider;
   }
 
-  private _getClassMetadata(Ctor: object & { inject?: any }): InjectionMetadata[] {
-    let injections = Reflect.getMetadata(INJECT_PARAM_KEY, Ctor, (<any>undefined));
+  private _getConstructorMetadata(Ctor: Function & { inject?: any }): InjectionMetadata[] {
+    let metadata = Reflect.getOwnMetadata(INJECT_METADATA, Ctor.prototype) as ClassInjectionMetadata;
+    let injections: InjectionMetadata[] = [];
 
-    if (!injections) {
+    if (metadata && metadata.params) {
+      injections = metadata.params;
+    } else {
       if (typeof Ctor.inject === 'function') {
         injections = this._resolveMetadataList(Ctor.inject());
       } else if (Array.isArray(Ctor.inject)) {
@@ -268,7 +297,7 @@ export class Injector {
       }
     }
 
-    return injections || [];
+    return injections;
   }
 
   private _resolveMetadataList(list: any[] = []): InjectionMetadata[] {

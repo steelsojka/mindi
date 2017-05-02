@@ -42,11 +42,16 @@ export interface InjectionMetadata {
   multi?: boolean;
 }
 
+export interface ClassInjectionMetadata {
+  properties: { [key: string]: InjectionMetadata };
+  params: InjectionMetadata[];
+}
+
 export interface ConstructMetadata {
   postConstruct: string[];
 }
 
-export const INJECT_PARAM_KEY = 'mindi:injections';
+export const INJECT_METADATA = 'mindi:injections';
 export const INJECTABLE_META_KEY = 'mindi:injectable';
 export const CONSTRUCTED_META_KEY = 'mindi:constructed';
 

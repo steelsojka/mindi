@@ -209,3 +209,43 @@ test('should resolve the static injection list property metadata', t => {
   t.is(typeof myClass.dep, 'function');
   t.is(myClass.dep(), 'blorg');
 });
+
+test('should resolve inject properties', t => {
+  t.plan(3);
+
+  class MyService {}
+
+  class MyClass {
+    @Inject(MyService) myService: MyService;
+
+    constructor() {
+      t.is(this.myService, undefined);
+    }
+
+    @PostConstruct()
+    init() {
+      t.true(this.myService instanceof MyService);
+    }
+  }
+
+  const injector = new Injector([ MyClass, MyService ]);
+
+  const myClass = injector.get<MyClass>(MyClass);
+
+  t.true(myClass.myService instanceof MyService);
+});
+
+test('should resolve inject properties lazily', t => {
+  class MyService {}
+
+  class MyClass {
+    @Inject(MyService) @Lazy() myService: () => MyService;
+  }
+
+  const injector = new Injector([ MyClass, MyService ]);
+
+  const myClass = injector.get<MyClass>(MyClass);
+
+  t.is(typeof myClass.myService, 'function');
+  t.true(myClass.myService() instanceof MyService);
+});

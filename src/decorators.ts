@@ -1,9 +1,10 @@
 import { 
-  INJECT_PARAM_KEY, 
+  INJECT_METADATA, 
   InjectableConfigArgs,
   INJECTABLE_META_KEY,
   CONSTRUCTED_META_KEY,
   ConstructMetadata,
+  ClassInjectionMetadata,
   Token
 } from './common';
 
@@ -14,9 +15,9 @@ import {
  * @param {*} token 
  * @returns {ParameterDecorator} 
  */
-export function Inject(token: any): ParameterDecorator {
-  return (target: Object, key: string, index: number) => {
-    addParamEntryProperty(target, key, index, { token });
+export function Inject(token: any): ParameterDecorator & PropertyDecorator {
+  return (target: Object, key: string, index?: number) => {
+    addInjectEntryProperty(target, key, index, { token });
   };
 }
 
@@ -25,9 +26,9 @@ export function Inject(token: any): ParameterDecorator {
  * @export
  * @returns {ParameterDecorator} 
  */
-export function Optional(): ParameterDecorator {
-  return (target: Object, key: string, index: number) => {
-    addParamEntryProperty(target, key, index, { optional: true });
+export function Optional(): ParameterDecorator & PropertyDecorator {
+  return (target: Object, key: string, index?: number) => {
+    addInjectEntryProperty(target, key, index, { optional: true });
   };
 }
 
@@ -45,9 +46,9 @@ export function Optional(): ParameterDecorator {
  *   }
  * }
  */
-export function Lazy(): ParameterDecorator {
-  return (target: Object, key: string, index: number) => {
-    addParamEntryProperty(target, key, index, { lazy: true });
+export function Lazy(): ParameterDecorator & PropertyDecorator {
+  return (target: Object, key: string, index?: number) => {
+    addInjectEntryProperty(target, key, index, { lazy: true });
   };
 }
 
@@ -57,9 +58,9 @@ export function Lazy(): ParameterDecorator {
  * @export
  * @returns {ParameterDecorator} 
  */
-export function Self(): ParameterDecorator {
-  return (target: Object, key: string, index: number) => {
-    addParamEntryProperty(target, key, index, { self: true });
+export function Self(): ParameterDecorator & PropertyDecorator {
+  return (target: Object, key: string, index?: number) => {
+    addInjectEntryProperty(target, key, index, { self: true });
   };
 }
 
@@ -68,9 +69,9 @@ export function Self(): ParameterDecorator {
  * @export
  * @returns {ParameterDecorator} 
  */
-export function SkipSelf(): ParameterDecorator {
-  return (target: Object, key: string, index: number) => {
-    addParamEntryProperty(target, key, index, { skipSelf: true });
+export function SkipSelf(): ParameterDecorator & PropertyDecorator {
+  return (target: Object, key: string, index?: number) => {
+    addInjectEntryProperty(target, key, index, { skipSelf: true });
   };
 }
 
@@ -133,19 +134,37 @@ function getConstructMetadata(target: Object, key: string): ConstructMetadata {
   return metadata;
 }
 
-function addParamEntryProperty(target: Object, key: string, index: number, keyValue: {[key: string]: any}) { 
-  const existingInjections = Reflect.getOwnMetadata(INJECT_PARAM_KEY, target, key) || [];
+function getDefaultInjectionMetadata(): ClassInjectionMetadata {
+  return {
+    properties: {},
+    params: []
+  };
+}
 
-  if (!existingInjections[index]) {
-    existingInjections[index] = {
-      token: null,
-      optional: false,
-      lazy: false,
-      self: false,
-      skipSelf: false
-    };
+function addInjectEntryProperty(target: Object|Function, key: string, index: number|undefined, keyValue: {[key: string]: any}) { 
+  const prototype = typeof target === 'function' ? target.prototype : target;
+  const metadata = (Reflect.getOwnMetadata(INJECT_METADATA, prototype) || getDefaultInjectionMetadata()) as ClassInjectionMetadata;
+  let meta = {
+    token: null,
+    optional: false,
+    lazy: false,
+    self: false,
+    skipSelf: false
+  };
+
+  if (typeof index === 'number') {
+    if (metadata.params[index]) {
+      meta = { ...meta, ...metadata.params[index] };
+    }
+
+    metadata.params[index] = { ...meta, ...keyValue };
+  } else {
+    if (metadata.properties[key]) {
+      meta = { ...meta, ...metadata.properties[key] };
+    }
+
+    metadata.properties[key] = { ...meta, ...keyValue };
   }
 
-  existingInjections[index] = Object.assign(existingInjections[index], keyValue);
-  Reflect.defineMetadata(INJECT_PARAM_KEY, existingInjections, target, key);
+  Reflect.defineMetadata(INJECT_METADATA, metadata, prototype);
 }
