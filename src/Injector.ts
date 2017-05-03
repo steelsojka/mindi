@@ -245,14 +245,24 @@ export class Injector {
 
   private _instantiateWithHooks(Ref: Function, ...d: any[]): any {
     const instance = this._instantiate(Ref, ...d);
+    const metadata = MetadataUtils.getInheritedMetadata<ConstructMetadata>(CONSTRUCTED_META_KEY, Ref.prototype);
+    const postConstructs = metadata
+      .reverse()  
+      .reduce<string[]>((result, meta) => {
+        for (const postConstruct of meta.postConstruct) {
+          if (result.indexOf(postConstruct) === -1) {
+            result.push(postConstruct);
+          }
+        }
 
-    const metadata = Reflect.getOwnMetadata(CONSTRUCTED_META_KEY, Ref.prototype) as ConstructMetadata|undefined;
+        return result;
+      }, []);
 
     this.autowire(instance);
 
     if (metadata) {
-      for (const postConstruct of metadata.postConstruct) {
-        instance[postConstruct].call(instance);
+      for (const postConstruct of postConstructs) {
+        instance[postConstruct]();
       }
     }
 

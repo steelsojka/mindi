@@ -274,3 +274,33 @@ test('should autowire inherited properties', t => {
   t.is(myClass.dep2, dep2);
   t.is(myClass.dep, dep);
 });
+
+test.only('should invoke inherited post constructs', t => {
+  t.plan(3);
+  class MyService {
+    @PostConstruct()
+    fn() {
+      t.pass();
+    }
+
+    @PostConstruct()
+    fn3() {
+      t.fail();
+    }
+  }
+
+  class MyClass extends MyService {
+    @PostConstruct()
+    fn2() {
+      t.pass();
+    }
+
+    @PostConstruct()
+    fn3() {
+      t.pass();
+    }
+  }
+
+  const injector = new Injector([ MyClass ]);
+  const myClass = injector.get(MyClass);
+});

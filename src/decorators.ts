@@ -114,16 +114,18 @@ export function Injectable(config: InjectableConfigArgs = {}): ClassDecorator {
  */
 export function PostConstruct(): MethodDecorator {
   return (target: Object, name: string) => {
-    const metadata = getConstructMetadata(target, name);
+    const metadata = getConstructMetadata(target);
 
     metadata.postConstruct.push(name);
+
+    console.log(name);
 
     Reflect.defineMetadata(CONSTRUCTED_META_KEY, metadata, target);
   };
 }
 
-function getConstructMetadata(target: Object, key: string): ConstructMetadata { 
-  let metadata: ConstructMetadata|undefined = Reflect.getOwnMetadata(CONSTRUCTED_META_KEY, target, key);
+function getConstructMetadata(target: Object): ConstructMetadata { 
+  let metadata: ConstructMetadata|undefined = Reflect.getOwnMetadata(CONSTRUCTED_META_KEY, target);
 
   if (!metadata) {
     metadata = {
