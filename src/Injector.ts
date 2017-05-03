@@ -194,7 +194,7 @@ export class Injector {
       const resolved = this._getDependencies(injections);
       const ref = ForwardRef.resolve(provider.useClass);
 
-      result = this._instantiateWithHooks(ref, ...resolved);
+      result = this._instantiateWithHooks(ref, metadata.skipInit, ...resolved);
     } else if (this._isFactoryProvider(provider)) {
       const resolved = this._getDependencies(this._resolveMetadataList(provider.deps));
       const ref = ForwardRef.resolve(provider.useFactory);
@@ -243,7 +243,7 @@ export class Injector {
     }
   }
 
-  private _instantiateWithHooks(Ref: Function, ...d: any[]): any {
+  private _instantiateWithHooks(Ref: Function, skipInit?: boolean, ...d: any[]): any {
     const instance = this._instantiate(Ref, ...d);
     const metadata = MetadataUtils.getInheritedMetadata<ConstructMetadata>(CONSTRUCTED_META_KEY, Ref.prototype);
     const postConstructs = metadata
@@ -260,7 +260,7 @@ export class Injector {
 
     this.autowire(instance);
 
-    if (metadata) {
+    if (metadata && !skipInit) {
       for (const postConstruct of postConstructs) {
         instance[postConstruct]();
       }

@@ -22,6 +22,19 @@ export function Inject(token: any): ParameterDecorator & PropertyDecorator {
 }
 
 /**
+ * Tells the injector that you want to skip all function calls annotated with `PostConstruct`
+ * on the injecting service. This usually indicates you want to initialize yourself.
+ * @export
+ * @param {*} token 
+ * @returns {ParameterDecorator} 
+ */
+export function SkipInit(skip: boolean = true): ParameterDecorator & PropertyDecorator {
+  return (target: Object, key: string, index?: number) => {
+    addInjectEntryProperty(target, key, index, { skipInit: skip });
+  };
+}
+
+/**
  * Marks a dependency as optional. Returns null if not found.
  * @export
  * @returns {ParameterDecorator} 
@@ -145,6 +158,7 @@ function addInjectEntryProperty(target: Object|Function, key: string, index: num
   const prototype = typeof target === 'function' ? target.prototype : target;
   const metadata = (Reflect.getOwnMetadata(INJECT_METADATA, prototype) || getDefaultInjectionMetadata()) as ClassInjectionMetadata;
   let meta = {
+    skipInit: false,
     token: null,
     optional: false,
     lazy: false,

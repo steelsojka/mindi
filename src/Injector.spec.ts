@@ -1,7 +1,7 @@
 import { Injector } from './Injector';
 import { forwardRef } from './ForwardRef';
 import { Token } from './common';
-import { Inject, PostConstruct, Lazy } from './decorators';
+import { Inject, PostConstruct, Lazy, SkipInit } from './decorators';
 import test from 'ava';
 
 class MyClass {}
@@ -320,4 +320,22 @@ test('when injections are inherited it should find metadata', t => {
   const myClass = injector.get(MyClass);
 
   t.is(myClass.dep, 'blorg');
+});
+
+test('should skip the init step', t => {
+  class MyService {
+    @PostConstruct()
+    fn() {
+      t.fail();
+    }
+  }
+
+  class MyClass {
+    @Inject(MyService) @SkipInit() myService: MyService;
+  }
+
+  const injector = new Injector([ MyClass, MyService ]);
+  const myClass = injector.get(MyClass);
+
+  t.true(myClass.myService instanceof MyService);
 });
