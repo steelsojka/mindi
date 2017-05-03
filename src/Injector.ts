@@ -177,12 +177,12 @@ export class Injector {
    * @param {*} provider 
    * @returns {T} 
    */
-  resolveAndInstantiate<T>(provider: any): T {
-    return this._resolve(provider);
+  resolveAndInstantiate<T>(provider: any, metadata?: InjectionMetadata): T {
+    return this._resolve(provider, metadata);
   }
 
-  invoke(fn: Function, providers: ProviderArg[]): any {
-    return fn(...providers.map(p => this._resolve(p)));
+  invoke(fn: Function, providers: any[]): any {
+    return fn(...this._getDependencies(this._resolveMetadataList(providers)));
   }
 
   private _resolve(_provider: ProviderArg, metadata: InjectionMetadata = {}): any {
