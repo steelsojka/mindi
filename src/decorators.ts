@@ -118,8 +118,6 @@ export function PostConstruct(): MethodDecorator {
 
     metadata.postConstruct.push(name);
 
-    console.log(name);
-
     Reflect.defineMetadata(CONSTRUCTED_META_KEY, metadata, target);
   };
 }
