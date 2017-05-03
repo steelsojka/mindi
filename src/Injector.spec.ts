@@ -129,11 +129,12 @@ test('should invoke the post construct hook', t => {
 });
 
 test('should skip its own injector', t => {
+  const token = new Token('test');
   const injector = new Injector();
-  const injector2 = injector.resolveAndCreateChild([ { provide: 'blorg', useValue: 'test' } ]);
+  const injector2 = injector.resolveAndCreateChild([ { provide: token, useValue: 'test' } ]);
 
-  t.is(injector2.get('blorg', null, { skipSelf: true }), null);
-  t.is(injector2.get('blorg', null, { skipSelf: false }), 'test');
+  t.is(injector2.get(token, null, { skipSelf: true }), null);
+  t.is(injector2.get(token, null, { skipSelf: false }), 'test');
 });
 
 test('should get multiple providers', t => {
@@ -244,8 +245,32 @@ test('should resolve inject properties lazily', t => {
 
   const injector = new Injector([ MyClass, MyService ]);
 
-  const myClass = injector.get<MyClass>(MyClass);
+  const myClass = injector.get(MyClass);
 
   t.is(typeof myClass.myService, 'function');
   t.true(myClass.myService() instanceof MyService);
+});
+
+test('should autowire inherited properties', t => {
+  const token = new Token('blorg');
+  const token2 = new Token('blorg2');
+  const dep = {};
+  const dep2 = {};
+  class MyService {
+    @Inject(token) dep: typeof dep;
+  }
+
+  class MyClass extends MyService {
+    @Inject(token2) dep2: typeof dep2;
+  }
+
+  const injector = new Injector([
+    MyClass,
+    { provide: token, useValue: dep },
+    { provide: token2, useValue: dep2 }
+  ]);
+  const myClass = injector.get(MyClass);
+
+  t.is(myClass.dep2, dep2);
+  t.is(myClass.dep, dep);
 });

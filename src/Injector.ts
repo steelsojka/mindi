@@ -16,6 +16,7 @@ import {
   Token
 } from './common';
 import { ForwardRef } from './ForwardRef';
+import * as MetadataUtils from './MetadataUtils';
 
 /**
  * A dependency injector for resolving dependencies. Injectors are hierarchicle.
@@ -85,7 +86,7 @@ export class Injector {
    * @param {InjectionMetadata} [metadata={}] 
    * @returns {*} 
    */
-  get<T>(token: any, defaultValue?: T, metadata: InjectionMetadata = {}): T {
+  get<T>(token: Type<T>|Token<T>, defaultValue?: any, metadata: InjectionMetadata = {}): T {
     let resource;
     let { optional = false } = metadata;
 
@@ -96,7 +97,7 @@ export class Injector {
         resource = ((provider as ValueProvider).useValue || []).map((p: Provider) => this._resolve(p));
 
         if (this._parent && !metadata.self) {
-          let parentResource = this._parent.get<T[]>(token, [], { ...metadata, skipSelf: false, self: false });
+          let parentResource = this._parent.get(token as Token<T[]>, [], { ...metadata, skipSelf: false, self: false });
 
           if (!Array.isArray(parentResource)) {
             parentResource = [ parentResource ];
@@ -157,14 +158,13 @@ export class Injector {
    */
   autowire<T>(instance: T & { constructor: Type<T>, [key: string]: any }): void {
     const prototype = instance.constructor.prototype;
-    const metadata = Reflect.getOwnMetadata(INJECT_METADATA, prototype) as ClassInjectionMetadata|undefined;
+    const metaList = MetadataUtils.getInheritedMetadata<ClassInjectionMetadata>(INJECT_METADATA, prototype);
+    const properties = metaList
+      .reverse()
+      .reduce<{ [key: string]: InjectionMetadata }>((result, meta) => ({ ...result, ...meta.properties }), {});
 
-    if (!metadata) {
-      return;
-    }
-
-    const keys = Object.keys(metadata.properties);
-    const dependencies = this._getDependencies(keys.map(key => metadata.properties[key]));
+    const keys = Object.keys(properties);
+    const dependencies = this._getDependencies(keys.map(key => properties[key]));
 
     for (const [ index, dependency ] of dependencies.entries()) {
       instance[keys[index]] = dependency;
