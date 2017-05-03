@@ -275,7 +275,7 @@ test('should autowire inherited properties', t => {
   t.is(myClass.dep, dep);
 });
 
-test.only('should invoke inherited post constructs', t => {
+test('should invoke inherited post constructs', t => {
   t.plan(3);
   class MyService {
     @PostConstruct()
@@ -303,4 +303,21 @@ test.only('should invoke inherited post constructs', t => {
 
   const injector = new Injector([ MyClass ]);
   const myClass = injector.get(MyClass);
+});
+
+test('when injections are inherited it should find metadata', t => {
+  const token = new Token<string>('blorg');
+
+  class MyService {
+    constructor(
+      @Inject(token) public dep: string
+    ) {}
+  }
+
+  class MyClass extends MyService {}
+
+  const injector = new Injector([ MyClass, { provide: token, useValue: 'blorg' } ]);
+  const myClass = injector.get(MyClass);
+
+  t.is(myClass.dep, 'blorg');
 });

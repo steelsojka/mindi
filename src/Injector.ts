@@ -294,7 +294,7 @@ export class Injector {
   }
 
   private _getConstructorMetadata(Ctor: Function & { inject?: any }): InjectionMetadata[] {
-    let metadata = Reflect.getOwnMetadata(INJECT_METADATA, Ctor.prototype) as ClassInjectionMetadata;
+    let metadata = Reflect.getMetadata(INJECT_METADATA, Ctor.prototype) as ClassInjectionMetadata;
     let injections: InjectionMetadata[] = [];
 
     if (metadata && metadata.params) {
