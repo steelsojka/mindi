@@ -106,11 +106,11 @@ export class Injector {
           resource = [ ...resource, ...parentResource ];
         }
       } else {
-        if (provider.resolved === undefined) {
-          this._resolve(provider as Provider, metadata);
+        if (provider.resolved !== undefined) {
+          resource = provider.resolved;  
+        } else {
+          resource = this._resolve(provider as Provider, metadata);
         }
-
-        resource = provider.resolved;  
       }
     }
 
@@ -188,6 +188,10 @@ export class Injector {
   private _resolve(_provider: ProviderArg, metadata: InjectionMetadata = {}): any {
     const provider = this._normalizeProvider(_provider);
     let result;
+
+    if (provider.resolved !== undefined) {
+      return provider.resolved;
+    }
     
     if (this._isClassProvider(provider)) {
       const injections = this._getConstructorMetadata(provider.useClass);
@@ -195,20 +199,23 @@ export class Injector {
       const ref = ForwardRef.resolve(provider.useClass);
 
       result = this._instantiateWithHooks(ref, metadata.skipInit, ...resolved);
+      provider.resolved = result;
     } else if (this._isFactoryProvider(provider)) {
       const resolved = this._getDependencies(this._resolveMetadataList(provider.deps));
       const ref = ForwardRef.resolve(provider.useFactory);
 
       result = ref(...resolved);
+      provider.resolved = result;
     } else if (this._isValueProvider(provider)) {
       result = ForwardRef.resolve(provider.useValue);
+      provider.resolved = result;
     } else if (this._isExistingProvider(provider)) {
       result = this.get(ForwardRef.resolve(provider.useExisting));
+      // Intentionally don't store existing providers as resolved as it is
+      // just an alias.
     } else {
       throw new Error(`Injector -> could not resolve provider ${(<Provider>provider).provide}`);
     }
-
-    provider.resolved = result;
 
     return result;
   }
