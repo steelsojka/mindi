@@ -1,6 +1,8 @@
 mindi
 =====
 
+[![npm version](https://badge.fury.io/js/mindi.svg)](https://badge.fury.io/js/mindi)
+
 A minimal dependency injection container, loosely based on Angular's DI.
 
 Install
