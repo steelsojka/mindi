@@ -153,12 +153,19 @@ export class Injector {
    * Wires up properties on a class instance with dependencies. This is invoked on class construction as well.
    * Note, dependencies will NOT be available in the constructor. They will be in any `PostConstruct` hooks however.
    * @template T 
-   * @param {(T & { constructor: Type<T>, [key: string]: any })} instance 
+   * @param {(T & { constructor?: Type<T>, [key: string]: any })} instance 
+   * @param {ClassInjectionMetadata} [metadata]
    * @returns {void} 
    */
-  autowire<T>(instance: T & { constructor: Type<T>, [key: string]: any }): void {
-    const prototype = instance.constructor.prototype;
-    const metaList = MetadataUtils.getInheritedMetadata<ClassInjectionMetadata>(INJECT_METADATA, prototype);
+  autowire(instance: { [key: string]: any }, propMetadata?: { [key: string]: InjectionMetadata }): void {
+    let metaList: ClassInjectionMetadata[] = [];
+
+    if (propMetadata) {
+      metaList = [ { properties: propMetadata, params: [] } ];
+    } else if (typeof instance.constructor === 'function') {
+      metaList = MetadataUtils.getInheritedMetadata<ClassInjectionMetadata>(INJECT_METADATA, instance.constructor.prototype);
+    }
+
     const properties = metaList
       .reverse()
       .reduce<{ [key: string]: InjectionMetadata }>((result, meta) => ({ ...result, ...meta.properties }), {});

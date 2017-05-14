@@ -15,7 +15,8 @@
     "build:test": "tsc -p tsconfig.test.json",
     "pretest": "npm run build:test",
     "test": "ava",
-    "test:clean": "del test"
+    "test:clean": "del test",
+    "release": "standard-version"
   },
   "keywords": [
     "DI"
@@ -27,6 +28,7 @@
     "ava": "^0.19.1",
     "del-cli": "^0.2.1",
     "reflect-metadata": "^0.1.10",
+    "standard-version": "^4.0.0",
     "typescript": "^2.3.2"
   },
   "dependencies": {

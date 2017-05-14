@@ -236,6 +236,16 @@ test('should resolve inject properties', t => {
   t.true(myClass.myService instanceof MyService);
 });
 
+test('should resolve inject properties on instances', t => {
+  const token = new Token('token');
+  const instance: { [key: string]: any } = {};
+  const injector = new Injector([ { provide: token, useValue: 'blorg' } ]);
+
+  injector.autowire(instance, { test: { token } });
+
+  t.is(instance.test, 'blorg');
+});
+
 test('should resolve inject properties lazily', t => {
   class MyService {}
 
