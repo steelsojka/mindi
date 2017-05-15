@@ -114,20 +114,14 @@ export class Injector {
           resource = this._resolve(provider as Provider, metadata);
         }
       }
-    }
-
-    if (resource === undefined && !metadata.self && this._parent) {
+    } else if (!metadata.self && this._parent) {
       resource = this._parent.get(token, defaultValue, { ...metadata, skipSelf: false, self: false });
-    }
-
-    if (resource === undefined) {
-      if (defaultValue !== undefined) {
-        resource = defaultValue;
-      } else if (optional) {
-        resource = null;
-      } else {
-        throw new Error(`Injector -> no token exists for ${token}`);
-      }
+    } else if (defaultValue !== undefined) {
+      resource = defaultValue;
+    } else if (optional) {
+      resource = null;
+    } else {
+      throw new Error(`Injector -> no token exists for ${token}`);
     }
 
     return resource;

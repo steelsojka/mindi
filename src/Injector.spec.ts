@@ -67,6 +67,14 @@ test('should only get from self', t => {
   t.is(myClass, null);
 });
 
+test('should get from the parent', t => {
+  const parent = new Injector([ MyClass ]);
+  const injector = new Injector([], parent);
+  const myClass = injector.get(MyClass);
+
+  t.true(myClass instanceof MyClass);
+});
+
 test('should return the default value', t => {
   const injector = new Injector([]);
 
@@ -83,6 +91,13 @@ test('should return the same references', t => {
 
 test('should throw if not found', t => {
   const injector = new Injector([]);
+
+  t.throws(() => injector.get(MyClass));
+});
+
+test('should throw if not found from the parent', t => {
+  const parent = new Injector([]);
+  const injector = new Injector([], parent);
 
   t.throws(() => injector.get(MyClass));
 });
@@ -405,4 +420,11 @@ test('should invoke the function with the dependencies', t => {
   const injector = new Injector([ { provide: token, useValue: 'test' } ]);
 
   injector.invoke(fn, [ token ]);
+});
+
+test('should allow undefined as a value', t => {
+  const token = new Token('test');
+  const injector = new Injector([ { provide: token, useValue: undefined } ]);
+
+  t.true(injector.get(token) === undefined);
 });
