@@ -1,6 +1,6 @@
 {
   "name": "mindi",
-  "version": "2.5.0",
+  "version": "2.6.0",
   "description": "Minimal DI",
   "main": "./dist/es5/index.js",
   "typings": "./dist/es5/index.d.js",
