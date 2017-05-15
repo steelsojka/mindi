@@ -13,7 +13,8 @@ import {
   CONSTRUCTED_META_KEY,
   ConstructMetadata,
   ClassInjectionMetadata,
-  Token
+  Token,
+  InjectionMetadataArg
 } from './common';
 import { ForwardRef } from './ForwardRef';
 import * as MetadataUtils from './MetadataUtils';
@@ -37,6 +38,7 @@ import * as MetadataUtils from './MetadataUtils';
  */
 export class Injector {
   private _providers: Map<any, Provider> = new Map();
+  private _resolving: any[] = [];
   
   /**
    * Creates an instance of Injector.
@@ -171,7 +173,7 @@ export class Injector {
       .reduce<{ [key: string]: InjectionMetadata }>((result, meta) => ({ ...result, ...meta.properties }), {});
 
     const keys = Object.keys(properties);
-    const dependencies = this._getDependencies(keys.map(key => properties[key]));
+    const dependencies = this._getDependencies(keys.map(key => this._resolveMetadata(properties[key])));
 
     for (const [ index, dependency ] of dependencies.entries()) {
       instance[keys[index]] = dependency;
@@ -188,7 +190,13 @@ export class Injector {
     return this._resolve(provider, metadata);
   }
 
-  invoke(fn: Function, providers: any[]): any {
+  /**
+   * Invokes a function with the list of providers.
+   * @param {Function} fn 
+   * @param {InjectionMetadataArg[]} providers 
+   * @returns {*} 
+   */
+  invoke(fn: Function, providers: InjectionMetadataArg[]): any {
     return fn(...this._getDependencies(this._resolveMetadataList(providers)));
   }
 
@@ -199,6 +207,13 @@ export class Injector {
     if (provider.resolved !== undefined) {
       return provider.resolved;
     }
+
+    // Cyclical dependency
+    if (this._resolving.indexOf(provider.provide) !== -1) {
+      throw new Error(`Cyclical dependency: Last evaludated ${provider.provide}`);
+    }
+
+    this._resolving.push(provider.provide);
     
     if (this._isClassProvider(provider)) {
       const injections = this._getConstructorMetadata(provider.useClass);
@@ -223,6 +238,8 @@ export class Injector {
     } else {
       throw new Error(`Injector -> could not resolve provider ${(<Provider>provider).provide}`);
     }
+
+    this._resolving.splice(this._resolving.indexOf(provider.provide), 1);
 
     return result;
   }
@@ -307,7 +324,7 @@ export class Injector {
     return _provider;
   }
 
-  private _getConstructorMetadata(Ctor: Function & { inject?: any }): InjectionMetadata[] {
+  private _getConstructorMetadata(Ctor: Function & { inject?: InjectionMetadataArg[] | (() => InjectionMetadataArg[]) }): InjectionMetadata[] {
     let metadata = Reflect.getMetadata(INJECT_METADATA, Ctor.prototype) as ClassInjectionMetadata;
     let injections: InjectionMetadata[] = [];
 
@@ -324,18 +341,32 @@ export class Injector {
     return injections;
   }
 
-  private _resolveMetadataList(list: any[] = []): InjectionMetadata[] {
+  /**
+   * Resolves a list of injection arguments.
+   * @private
+   * @param {InjectionMetadataArg[]} [list=[]] 
+   * @returns {InjectionMetadata[]} 
+   */
+  private _resolveMetadataList(list: InjectionMetadataArg[] = []): InjectionMetadata[] {
     if (!Array.isArray(list)) {
       return [];
     }
 
-    return list.map((metadata: any) => {
-      if (metadata instanceof Token || typeof metadata === 'function') {
-        return { token: metadata };
-      }
+    return list.map(metadata => this._resolveMetadata(metadata));
+  }
 
-      return metadata;
-    });
+  /**
+   * Resolves an injection argument.
+   * @private
+   * @param {InjectionMetadataArg} metadata 
+   * @returns {InjectionMetadata} 
+   */
+  private _resolveMetadata(metadata: InjectionMetadataArg): InjectionMetadata {
+    if (metadata instanceof Token || typeof metadata === 'function') {
+      return { token: metadata };
+    }
+
+    return metadata;
   }
 
   /**

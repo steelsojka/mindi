@@ -64,6 +64,8 @@ export type InjectableConfigArgs = {
   [P in keyof InjectableConfig]?: InjectableConfig[P];
 }
 
+export type InjectionMetadataArg = Token<any> | Type<any> | InjectionMetadata;
+
 /**
  * A token used for dependency injection.
  * @export

@@ -238,12 +238,17 @@ test('should resolve inject properties', t => {
 
 test('should resolve inject properties on instances', t => {
   const token = new Token('token');
+  const token2 = new Token('token');
   const instance: { [key: string]: any } = {};
-  const injector = new Injector([ { provide: token, useValue: 'blorg' } ]);
+  const injector = new Injector([
+    { provide: token, useValue: 'blorg' },
+    { provide: token2, useValue: 'test' }
+  ]);
 
-  injector.autowire(instance, { test: { token } });
+  injector.autowire(instance, { test: { token }, test2: token2 });
 
   t.is(instance.test, 'blorg');
+  t.is(instance.test2, 'test');
 });
 
 test('should resolve inject properties lazily', t => {
@@ -348,4 +353,56 @@ test('should skip the init step', t => {
   const myClass = injector.get(MyClass);
 
   t.true(myClass.myService instanceof MyService);
+});
+
+test('should throw a cyclical dependency error', t => {
+  t.plan(1);
+  const token = new Token('test');
+
+  class MyService {
+    @Inject(token) service: any;
+  }
+
+  class MyService2 {
+    @Inject(MyService) service: any;
+  }
+
+  const injector = new Injector([ MyService, { provide: token, useClass: MyService2 } ]);
+
+  t.throws(() => {
+    injector.get(MyService);
+  });
+});
+
+test('should not throw a cyclical dependency error when lazy', t => {
+  t.plan(3);
+  const token = new Token('test');
+
+  class MyService {
+    @Inject(token) @Lazy() service: any;
+  }
+
+  class MyService2 {
+    @Inject(MyService) service: any;
+  }
+
+  const injector = new Injector([ MyService, { provide: token, useClass: MyService2 } ]);
+  const myService = injector.get(MyService);
+
+  t.is(typeof myService.service, 'function');
+  t.true(myService.service() instanceof MyService2);
+  t.pass();
+});
+
+test('should invoke the function with the dependencies', t => {
+  t.plan(1);
+  const token = new Token('test');
+
+  function fn(dep: any) {
+    t.is(dep, 'test');
+  }
+
+  const injector = new Injector([ { provide: token, useValue: 'test' } ]);
+
+  injector.invoke(fn, [ token ]);
 });
