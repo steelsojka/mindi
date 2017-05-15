@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="2.6.1"></a>
+## [2.6.1](https://github.com/steelsojka/mindi/compare/v2.6.0...v2.6.1) (2017-05-15)
+
+
+### Bug Fixes
+
+* **injector:** allow undefined as a value ([e5bf6bd](https://github.com/steelsojka/mindi/commit/e5bf6bd))
+
+
+
 <a name="2.6.0"></a>
 # [2.6.0](https://github.com/steelsojka/mindi/compare/v2.5.0...v2.6.0) (2017-05-15)
 
