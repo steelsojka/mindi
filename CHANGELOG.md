@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="2.6.2"></a>
+## [2.6.2](https://github.com/steelsojka/mindi/compare/v2.6.1...v2.6.2) (2017-05-22)
+
+
+### Bug Fixes
+
+* **sourceMaps:** remove src from npmignore to not break source maps ([ca91efe](https://github.com/steelsojka/mindi/commit/ca91efe))
+
+
+
 <a name="2.6.1"></a>
 ## [2.6.1](https://github.com/steelsojka/mindi/compare/v2.6.0...v2.6.1) (2017-05-15)
 
