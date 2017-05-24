@@ -428,3 +428,47 @@ test('should allow undefined as a value', t => {
 
   t.true(injector.get(token) === undefined);
 });
+
+test('should not throw a cyclic error when instantiating in a factory', t => {
+  class MyClass {}
+
+  const injector = new Injector([{
+    provide: MyClass, 
+    useFactory(inj: Injector) {
+      return inj.resolveAndInstantiate(MyClass);
+    },
+    deps: [ Injector ]
+  }]);
+
+  t.notThrows(() => injector.get(MyClass));
+});
+
+test('should throw a cyclic error when instantiating a token the references itself in a factory', t => {
+  class MyClass {
+    @Inject(MyClass) service: any;
+  }
+
+  const injector = new Injector([{
+    provide: MyClass, 
+    useFactory(inj: Injector) {
+      return inj.resolveAndInstantiate(MyClass);
+    },
+    deps: [ Injector ]
+  }]);
+
+  t.throws(() => injector.get(MyClass));
+});
+
+test('should throw a cyclic error when getting the current evaluating token in a factory', t => {
+  class MyClass {}
+
+  const injector = new Injector([{
+    provide: MyClass, 
+    useFactory(inj: Injector) {
+      return inj.get(MyClass);
+    },
+    deps: [ Injector ]
+  }]);
+
+  t.throws(() => injector.get(MyClass));
+});

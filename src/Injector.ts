@@ -181,7 +181,9 @@ export class Injector {
    * @returns {T} 
    */
   resolveAndInstantiate<T>(provider: any, metadata?: InjectionMetadata): T {
-    return this._resolve(provider, metadata);
+    // Skip the cyclical check on this token since we are just instantiating a provider that
+    // is not registered.
+    return this._resolve(provider, metadata, true);
   }
 
   /**
@@ -194,7 +196,7 @@ export class Injector {
     return fn(...this._getDependencies(this._resolveMetadataList(providers)));
   }
 
-  private _resolve(_provider: ProviderArg, metadata: InjectionMetadata = {}): any {
+  private _resolve(_provider: ProviderArg, metadata: InjectionMetadata = {}, skipCyclicCheck: boolean = false): any {
     const provider = this._normalizeProvider(_provider);
     let result;
 
@@ -202,12 +204,14 @@ export class Injector {
       return provider.resolved;
     }
 
-    // Cyclical dependency
-    if (this._resolving.indexOf(provider.provide) !== -1) {
-      throw new Error(`Cyclical dependency: Last evaludated ${provider.provide}`);
-    }
+    if (!skipCyclicCheck) {
+      // Cyclical dependency
+      if (this._resolving.indexOf(provider.provide) !== -1) {
+        throw new Error(`Cyclical dependency: Last evaludated ${provider.provide}`);
+      }
 
-    this._resolving.push(provider.provide);
+      this._resolving.push(provider.provide);
+    }
     
     if (this._isClassProvider(provider)) {
       const injections = this._getConstructorMetadata(provider.useClass);
@@ -233,7 +237,9 @@ export class Injector {
       throw new Error(`Injector -> could not resolve provider ${(<Provider>provider).provide}`);
     }
 
-    this._resolving.splice(this._resolving.indexOf(provider.provide), 1);
+    if (!skipCyclicCheck) {
+      this._resolving.splice(this._resolving.indexOf(provider.provide), 1);
+    }
 
     return result;
   }
