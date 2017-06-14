@@ -472,3 +472,17 @@ test('should throw a cyclic error when getting the current evaluating token in a
 
   t.throws(() => injector.get(MyClass));
 });
+
+test('should support a ForwardRef as a token', t => {
+  const token = new Token('test');
+
+  class MyClass {
+    @Inject(forwardRef(() => token)) value: any;
+  }
+
+  const injector = new Injector([ MyClass, { provide: token, useValue: 'blorg' } ]);
+
+  const myClass = injector.get(MyClass);
+
+  t.is(myClass.value, 'blorg');
+});

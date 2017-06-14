@@ -92,6 +92,8 @@ export class Injector {
     let resource;
     let { optional = false } = metadata;
 
+    token = ForwardRef.resolve(token);
+
     if (this._providers.has(token) && !metadata.skipSelf) {
       const provider = this._providers.get(token) as Provider;
 
