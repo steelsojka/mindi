@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="2.7.0"></a>
+# [2.7.0](https://github.com/steelsojka/mindi/compare/v2.6.3...v2.7.0) (2017-06-14)
+
+
+### Features
+
+* **Injector:** support forwardRef as token ([a57a700](https://github.com/steelsojka/mindi/commit/a57a700))
+
+
+
 <a name="2.6.3"></a>
 ## [2.6.3](https://github.com/steelsojka/mindi/compare/v2.6.2...v2.6.3) (2017-05-24)
 
